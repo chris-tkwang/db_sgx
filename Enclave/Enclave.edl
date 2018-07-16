@@ -1,0 +1,121 @@
+/*
+ * Copyright (C) 2011-2018 Intel Corporation. All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ *   * Redistributions of source code must retain the above copyright
+ *     notice, this list of conditions and the following disclaimer.
+ *   * Redistributions in binary form must reproduce the above copyright
+ *     notice, this list of conditions and the following disclaimer in
+ *     the documentation and/or other materials provided with the
+ *     distribution.
+ *   * Neither the name of Intel Corporation nor the names of its
+ *     contributors may be used to endorse or promote products derived
+ *     from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ */
+
+/* Enclave.edl - Top EDL file. */
+
+enclave {
+    include "user_types.h" /* buffer_t */
+
+    /* Import ECALL/OCALL from sub-directory EDLs.
+     *  [from]: specifies the location of EDL file. 
+     *  [import]: specifies the functions to import, 
+     *  [*]: implies to import all functions.
+     */
+    
+    from "Edger8rSyntax/Types.edl" import *;
+    from "Edger8rSyntax/Pointers.edl" import *;
+    from "Edger8rSyntax/Arrays.edl" import *;
+    from "Edger8rSyntax/Functions.edl" import *;
+
+    from "TrustedLibrary/Libc.edl" import *;
+    from "TrustedLibrary/Libcxx.edl" import ecall_exception, ecall_map;
+    from "TrustedLibrary/Thread.edl" import *;
+
+    trusted {
+        void print_row([in] Row* row);
+        NodeType get_node_type([in, size = 4] void* node);
+        void set_node_type([in, size = 4] void* node, NodeType type);
+        bool is_node_root([in, size = 4] void* node);
+        void set_node_root([in, size = 4] void* node, bool is_root);
+        uint32_t* node_parent([in, size = 4] void* node);
+        uint32_t* internal_node_num_keys([in, size = 4] void* node);
+        uint32_t* internal_node_right_child([in, size = 4] void* node);
+        uint32_t* internal_node_cell([in, size = 4] void* node, uint32_t cell_num);
+        uint32_t* internal_node_child([in, size = 4] void* node, uint32_t child_num);
+        uint32_t* internal_node_key([in, size = 4] void* node, uint32_t key_num);
+        uint32_t* leaf_node_num_cells([in, size = 4] void* node);
+        uint32_t* leaf_node_next_leaf([in, size = 4] void* node);
+        void* leaf_node_cell([in, size = 4] void* node, uint32_t cell_num);
+        uint32_t* leaf_node_key([in, size = 4] void* node, uint32_t cell_num);
+        void* leaf_node_value([in, size = 4] void* node, uint32_t cell_num);
+        uint32_t get_node_max_key([in, size = 4] void* node);
+        void print_constants();
+        void* get_page([in, out] Pager* pager, uint32_t page_num);
+        void indent(uint32_t level);
+        void print_tree([in] Pager* pager, uint32_t page_num, uint32_t indentation_level);
+        void serialize_row([in, out] Row* source, [in, out, size = 4] void* destination);
+        void deserialize_row([in, out, size = 4] void* source, [in, out] Row* destination);
+        void initialize_leaf_node([in, size = 4] void* node);
+        void initialize_internal_node([in, size = 4] void* node);
+        Cursor* leaf_node_find([in] Table* table, uint32_t page_num, uint32_t key);
+        uint32_t internal_node_find_child([in, size = 4] void* node, uint32_t key);
+        Cursor* internal_node_find([in] Table* table, uint32_t page_num, uint32_t key);
+        Cursor* table_find([in] Table* table, uint32_t key);
+        Cursor* table_start([in] Table* table);
+        Pager* pager_open([in, string] const char* filename);
+        public Table* db_open([in, string] const char* filename);
+        public InputBuffer* new_input_buffer();
+        public void print_prompt();
+        public void read_input([in, out] InputBuffer* input_buffer);
+        void pager_flush([in, out] Pager* pager, uint32_t page_num);
+        void db_close([in] Table* table);
+        public MetaCommandResult do_meta_command([in] InputBuffer* input_buffer, [in] Table* table);
+        PrepareResult prepare_insert([in, out] InputBuffer* input_buffer, [in, out] Statement* statement);
+        public PrepareResult prepare_statement([in] InputBuffer* input_buffer, [in, out] Statement* statement);
+        uint32_t get_unused_page_num([in] Pager* pager);
+        void create_new_root([in, out] Table* table, uint32_t right_child_page_num);
+        void internal_node_insert([in, out] Table* table, uint32_t parent_page_num, uint32_t child_page_num);
+        void update_internal_node_key([in, out, size = 4] void* node, uint32_t old_key, uint32_t new_key);
+        void leaf_node_split_and_insert([in, out] Cursor* cursor, uint32_t key, [in, out] Row* value);
+        void leaf_node_insert([in, out] Cursor* cursor, uint32_t key, [in, out] Row* value);
+        ExecuteResult execute_insert([in, out] Statement* statement, [in, out] Table* table);
+        ExecuteResult execute_select([in, out] Statement* statement, [in, out] Table* table);
+        public ExecuteResult execute_statement([in, out] Statement* statement, [in, out] Table* table);		
+    };
+
+    /* 
+     * ocall_print_string - invokes OCALL to display string buffer inside the enclave.
+     *  [in]: copy the string buffer to App outside.
+     *  [string]: specifies 'str' is a NULL terminated buffer.
+     */
+    untrusted {
+        void ocall_print_string([in, string] const char *str);
+        int ocall_open([in, string] const char *pathname);
+        int ocall_close(int fd);
+        off_t ocall_lseek(int fd, off_t offset);
+        void ocall_exit(int s);
+        off_t ocall_read(int fd, [out, size = count]void *buf, size_t count);
+        off_t ocall_write(int fd, [in, size = count]const void *buf, size_t count);
+        off_t ocall_getline([in, out] InputBuffer* input_buffer);
+        void ocall_strcpy([in, out, string] char* des, [in, string] const char* source);
+    };
+
+};
