@@ -298,7 +298,7 @@ int SGX_CDECL main(int argc, char *argv[])
   input_buffer->buffer_length = 0;
   input_buffer->input_length = 0;
 
-  //while (true) 
+  while (true)
   {
     print_prompt(global_eid);
     read_input(global_eid, input_buffer);
