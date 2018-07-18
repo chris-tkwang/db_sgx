@@ -83,7 +83,9 @@ off_t ocall_getline(InputBuffer* input_buffer){
 }
 
 void ocall_strcpy(char* des, const char* source){
+    printf("%s\n", source);
     strcpy(des, source);
+
 }
 
 typedef struct _sgx_errlist_t {
@@ -290,7 +292,10 @@ int SGX_CDECL main(int argc, char *argv[])
 
   char* filename = argv[1];
   Table* table;
-  db_open(global_eid, &table, filename);
+  sgx_status_t ret;
+  ret = db_open(global_eid, &table, filename);
+  if (ret != SGX_SUCCESS)
+    printf("error\n");
 
   InputBuffer* input_buffer = (InputBuffer*) malloc(sizeof(InputBuffer));
   //new_input_buffer(global_eid, &input_buffer);
@@ -308,10 +313,11 @@ int SGX_CDECL main(int argc, char *argv[])
       do_meta_command(global_eid, &meta_command_result, input_buffer, table);
       switch (meta_command_result) {
         case (META_COMMAND_SUCCESS):
-          //continue;
+          printf("success\n");
+          continue;
         case (META_COMMAND_UNRECOGNIZED_COMMAND):
           printf("Unrecognized command '%s'\n", input_buffer->buffer);
-          //continue;
+          continue;
       }
     }
 
@@ -323,21 +329,26 @@ int SGX_CDECL main(int argc, char *argv[])
         break;
       case (PREPARE_NEGATIVE_ID):
         printf("ID must be positive.\n");
-        //continue;
+        continue;
       case (PREPARE_STRING_TOO_LONG):
         printf("String is too long.\n");
-        //continue;
+        continue;
       case (PREPARE_SYNTAX_ERROR):
         printf("Syntax error. Could not parse statement.\n");
-        //continue;
+        continue;
       case (PREPARE_UNRECOGNIZED_STATEMENT):
         printf("Unrecognized keyword at start of '%s'.\n",
                input_buffer->buffer);
-        //continue;
+        continue;
     }
 
+    sgx_status_t ret;
+
+    printf("%s\n", statement.row_to_insert.email);
+    printf("%d\n", statement.row_to_insert.id);
     ExecuteResult execute_result;
     execute_statement(global_eid, &execute_result, &statement, table);
+
     switch (execute_result) {
       case (EXECUTE_SUCCESS):
         printf("Executed.\n");
