@@ -522,6 +522,7 @@ void db_close(Table* table) {
 }
 
 MetaCommandResult do_meta_command(InputBuffer* input_buffer, Table* table) {
+  printf("%s\n", input_buffer->buffer);
   if (strcmp(input_buffer->buffer, ".exit") == 0) {
     db_close(table);
     ocall_exit(EXIT_SUCCESS);
@@ -539,6 +540,7 @@ MetaCommandResult do_meta_command(InputBuffer* input_buffer, Table* table) {
 }
 
 PrepareResult prepare_insert(InputBuffer* input_buffer, Statement* statement) {
+  //printf("%s\n", input_buffer->buffer);
   statement->type = STATEMENT_INSERT;
 
   char* keyword = strtok(input_buffer->buffer, " ");
@@ -562,14 +564,17 @@ PrepareResult prepare_insert(InputBuffer* input_buffer, Statement* statement) {
   }
 
   statement->row_to_insert.id = id;
-  ocall_strcpy(statement->row_to_insert.username, username);
-  ocall_strcpy(statement->row_to_insert.email, email);
-
+  //ocall_strcpy(statement->row_to_insert.username, username);
+  strncpy(statement->row_to_insert.username, username, strlen(username));
+  strncpy(statement->row_to_insert.email, email, strlen(email));
+  //ocall_strcpy(statement->row_to_insert.email, email);
+  //printf("%s\n", statement->row_to_insert.username);
   return PREPARE_SUCCESS;
 }
 
 PrepareResult prepare_statement(InputBuffer* input_buffer,
                                 Statement* statement) {
+  ///printf("%s\n", input_buffer->buffer);
   if (strncmp(input_buffer->buffer, "insert", 6) == 0) {
     return prepare_insert(input_buffer, statement);
   }
@@ -745,6 +750,7 @@ void leaf_node_insert(Cursor* cursor, uint32_t key, Row* value) {
 }
 
 ExecuteResult execute_insert(Statement* statement, Table* table) {
+  printf("%s\n", statement->row_to_insert.email);
   void* node = get_page(table->pager, table->root_page_num);
   uint32_t num_cells = (*leaf_node_num_cells(node));
 
@@ -782,6 +788,7 @@ ExecuteResult execute_select(Statement* statement, Table* table) {
 }
 
 ExecuteResult execute_statement(Statement* statement, Table* table) {
+  printf("%s\n", statement->row_to_insert.email);
   switch (statement->type) {
     case (STATEMENT_INSERT):
       return execute_insert(statement, table);
@@ -789,4 +796,3 @@ ExecuteResult execute_statement(Statement* statement, Table* table) {
       return execute_select(statement, table);
   }
 }
-
