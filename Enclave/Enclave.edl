@@ -32,14 +32,8 @@
 /* Enclave.edl - Top EDL file. */
 
 enclave {
-    include "user_types.h" /* buffer_t */
+    include "user_types.h" 
 
-    /* Import ECALL/OCALL from sub-directory EDLs.
-     *  [from]: specifies the location of EDL file. 
-     *  [import]: specifies the functions to import, 
-     *  [*]: implies to import all functions.
-     */
-    
     from "Edger8rSyntax/Types.edl" import *;
     from "Edger8rSyntax/Pointers.edl" import *;
     from "Edger8rSyntax/Arrays.edl" import *;
@@ -51,32 +45,32 @@ enclave {
 
     trusted {
         void print_row([in] Row* row);
-        NodeType get_node_type([in, size = 4] void* node);
-        void set_node_type([in, size = 4] void* node, NodeType type);
-        bool is_node_root([in, size = 4] void* node);
-        void set_node_root([in, size = 4] void* node, bool is_root);
-        uint32_t* node_parent([in, size = 4] void* node);
-        uint32_t* internal_node_num_keys([in, size = 4] void* node);
-        uint32_t* internal_node_right_child([in, size = 4] void* node);
-        uint32_t* internal_node_cell([in, size = 4] void* node, uint32_t cell_num);
-        uint32_t* internal_node_child([in, size = 4] void* node, uint32_t child_num);
-        uint32_t* internal_node_key([in, size = 4] void* node, uint32_t key_num);
-        uint32_t* leaf_node_num_cells([in, size = 4] void* node);
-        uint32_t* leaf_node_next_leaf([in, size = 4] void* node);
-        void* leaf_node_cell([in, size = 4] void* node, uint32_t cell_num);
-        uint32_t* leaf_node_key([in, size = 4] void* node, uint32_t cell_num);
-        void* leaf_node_value([in, size = 4] void* node, uint32_t cell_num);
-        uint32_t get_node_max_key([in, size = 4] void* node);
+        NodeType get_node_type([user_check] void* node);
+        void set_node_type([user_check] void* node, NodeType type);
+        bool is_node_root([user_check] void* node);
+        void set_node_root([user_check] void* node, bool is_root);
+        uint32_t* node_parent([user_check] void* node);
+        uint32_t* internal_node_num_keys([user_check] void* node);
+        uint32_t* internal_node_right_child([user_check] void* node);
+        uint32_t* internal_node_cell([user_check] void* node, uint32_t cell_num);
+        uint32_t* internal_node_child([user_check] void* node, uint32_t child_num);
+        uint32_t* internal_node_key([user_check] void* node, uint32_t key_num);
+        uint32_t* leaf_node_num_cells([user_check] void* node);
+        uint32_t* leaf_node_next_leaf([user_check] void* node);
+        void* leaf_node_cell([user_check] void* node, uint32_t cell_num);
+        uint32_t* leaf_node_key([user_check] void* node, uint32_t cell_num);
+        void* leaf_node_value([user_check] void* node, uint32_t cell_num);
+        uint32_t get_node_max_key([user_check] void* node);
         void print_constants();
         void* get_page([user_check] Pager* pager, uint32_t page_num);
         void indent(uint32_t level);
         void print_tree([in] Pager* pager, uint32_t page_num, uint32_t indentation_level);
-        void serialize_row([user_check] Row* source, [in, out, size = 4] void* destination);
-        void deserialize_row([in, out, size = 4] void* source, [user_check] Row* destination);
-        void initialize_leaf_node([in, size = 4] void* node);
-        void initialize_internal_node([in, size = 4] void* node);
+        void serialize_row([user_check] Row* source, [user_check] void* destination);
+        void deserialize_row([user_check] void* source, [user_check] Row* destination);
+        void initialize_leaf_node([user_check] void* node);
+        void initialize_internal_node([user_check] void* node);
         Cursor* leaf_node_find([user_check] Table* table, uint32_t page_num, uint32_t key);
-        uint32_t internal_node_find_child([in, size = 4] void* node, uint32_t key);
+        uint32_t internal_node_find_child([user_check] void* node, uint32_t key);
         Cursor* internal_node_find([user_check] Table* table, uint32_t page_num, uint32_t key);
         Cursor* table_find([user_check] Table* table, uint32_t key);
         Cursor* table_start([user_check] Table* table);
@@ -93,7 +87,7 @@ enclave {
         uint32_t get_unused_page_num([user_check] Pager* pager);
         void create_new_root([user_check] Table* table, uint32_t right_child_page_num);
         void internal_node_insert([user_check] Table* table, uint32_t parent_page_num, uint32_t child_page_num);
-        void update_internal_node_key([in, out, size = 4] void* node, uint32_t old_key, uint32_t new_key);
+        void update_internal_node_key([user_check] void* node, uint32_t old_key, uint32_t new_key);
         void leaf_node_split_and_insert([user_check] Cursor* cursor, uint32_t key, [user_check] Row* value);
         void leaf_node_insert([user_check] Cursor* cursor, uint32_t key, [user_check] Row* value);
         ExecuteResult execute_insert([user_check] Statement* statement, [user_check] Table* table);
@@ -101,16 +95,12 @@ enclave {
         public ExecuteResult execute_statement([user_check] Statement* statement, [user_check] Table* table);		
     };
 
-    /* 
-     * ocall_print_string - invokes OCALL to display string buffer inside the enclave.
-     *  [in]: copy the string buffer to App outside.
-     *  [string]: specifies 'str' is a NULL terminated buffer.
-     */
     untrusted {
         void ocall_print_string([in, string] const char *str);
         int ocall_open([in, string] const char *pathname);
         int ocall_close(int fd);
-        off_t ocall_lseek(int fd, off_t offset);
+        off_t ocall_lseek_end(int fd, off_t offset);
+        off_t ocall_lseek_set(int fd, off_t offset);
         void ocall_exit(int s);
         off_t ocall_read(int fd, [out, size = count]void *buf, size_t count);
         off_t ocall_write(int fd, [in, size = count]const void *buf, size_t count);

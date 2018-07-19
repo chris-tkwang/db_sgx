@@ -205,7 +205,7 @@ void* get_page(Pager* pager, uint32_t page_num) {
 
     if (page_num <= num_pages) {
       off_t ret;
-      ocall_lseek(&ret, pager->file_descriptor, page_num * PAGE_SIZE);
+      ocall_lseek_set(&ret, pager->file_descriptor, page_num * PAGE_SIZE);
       ssize_t bytes_read;
       ocall_read(&bytes_read, pager->file_descriptor, page, PAGE_SIZE);
       if (bytes_read == -1) {
@@ -414,7 +414,7 @@ Pager* pager_open(const char* filename) {
   }
 
   off_t file_length;
-  ocall_lseek(&file_length, fd, 0);
+  ocall_lseek_end(&file_length, fd, 0);
 
   Pager* pager = (Pager*) malloc(sizeof(Pager));
   pager->file_descriptor = fd;
@@ -477,7 +477,7 @@ void pager_flush(Pager* pager, uint32_t page_num) {
   }
 
   off_t offset;
-  ocall_lseek(&offset, pager->file_descriptor, page_num * PAGE_SIZE);
+  ocall_lseek_set(&offset, pager->file_descriptor, page_num * PAGE_SIZE);
 
   if (offset == -1) {
     printf("Error seeking: %d\n", errno);
@@ -522,7 +522,6 @@ void db_close(Table* table) {
 }
 
 MetaCommandResult do_meta_command(InputBuffer* input_buffer, Table* table) {
-  printf("%s\n", input_buffer->buffer);
   if (strcmp(input_buffer->buffer, ".exit") == 0) {
     db_close(table);
     ocall_exit(EXIT_SUCCESS);
@@ -540,7 +539,6 @@ MetaCommandResult do_meta_command(InputBuffer* input_buffer, Table* table) {
 }
 
 PrepareResult prepare_insert(InputBuffer* input_buffer, Statement* statement) {
-  //printf("%s\n", input_buffer->buffer);
   statement->type = STATEMENT_INSERT;
 
   char* keyword = strtok(input_buffer->buffer, " ");
@@ -574,7 +572,6 @@ PrepareResult prepare_insert(InputBuffer* input_buffer, Statement* statement) {
 
 PrepareResult prepare_statement(InputBuffer* input_buffer,
                                 Statement* statement) {
-  ///printf("%s\n", input_buffer->buffer);
   if (strncmp(input_buffer->buffer, "insert", 6) == 0) {
     return prepare_insert(input_buffer, statement);
   }
@@ -750,12 +747,12 @@ void leaf_node_insert(Cursor* cursor, uint32_t key, Row* value) {
 }
 
 ExecuteResult execute_insert(Statement* statement, Table* table) {
-  printf("%s\n", statement->row_to_insert.email);
   void* node = get_page(table->pager, table->root_page_num);
   uint32_t num_cells = (*leaf_node_num_cells(node));
 
   Row* row_to_insert = &(statement->row_to_insert);
   uint32_t key_to_insert = row_to_insert->id;
+
   Cursor* cursor = table_find(table, key_to_insert);
 
   if (cursor->cell_num < num_cells) {
@@ -788,7 +785,6 @@ ExecuteResult execute_select(Statement* statement, Table* table) {
 }
 
 ExecuteResult execute_statement(Statement* statement, Table* table) {
-  printf("%s\n", statement->row_to_insert.email);
   switch (statement->type) {
     case (STATEMENT_INSERT):
       return execute_insert(statement, table);
