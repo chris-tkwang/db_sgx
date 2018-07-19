@@ -54,8 +54,12 @@ int ocall_open(const char *pathname){
     return open(pathname, O_RDWR | O_CREAT, S_IWUSR | S_IRUSR);
 }
 
-off_t ocall_lseek(int fd, off_t offset){
+off_t ocall_lseek_end(int fd, off_t offset){
     return lseek(fd, offset, SEEK_END);
+}
+
+off_t ocall_lseek_set(int fd, off_t offset){
+    return lseek(fd, offset, SEEK_SET);
 }
 
 void ocall_exit(int s){
@@ -274,10 +278,6 @@ void ocall_print_string(const char *str)
 /* Application entry */
 int SGX_CDECL main(int argc, char *argv[])
 {
-    //(void)(argc);
-    //(void)(argv);
-
-
     /* Initialize the enclave */
     if(initialize_enclave() < 0){
         printf("Enter a character before exit ...\n");
@@ -292,13 +292,9 @@ int SGX_CDECL main(int argc, char *argv[])
 
   char* filename = argv[1];
   Table* table;
-  sgx_status_t ret;
-  ret = db_open(global_eid, &table, filename);
-  if (ret != SGX_SUCCESS)
-    printf("error\n");
+  db_open(global_eid, &table, filename);
 
   InputBuffer* input_buffer = (InputBuffer*) malloc(sizeof(InputBuffer));
-  //new_input_buffer(global_eid, &input_buffer);
   input_buffer->buffer = NULL;
   input_buffer->buffer_length = 0;
   input_buffer->input_length = 0;
@@ -313,7 +309,6 @@ int SGX_CDECL main(int argc, char *argv[])
       do_meta_command(global_eid, &meta_command_result, input_buffer, table);
       switch (meta_command_result) {
         case (META_COMMAND_SUCCESS):
-          printf("success\n");
           continue;
         case (META_COMMAND_UNRECOGNIZED_COMMAND):
           printf("Unrecognized command '%s'\n", input_buffer->buffer);
@@ -342,13 +337,8 @@ int SGX_CDECL main(int argc, char *argv[])
         continue;
     }
 
-    sgx_status_t ret;
-
-    printf("%s\n", statement.row_to_insert.email);
-    printf("%d\n", statement.row_to_insert.id);
     ExecuteResult execute_result;
     execute_statement(global_eid, &execute_result, &statement, table);
-
     switch (execute_result) {
       case (EXECUTE_SUCCESS):
         printf("Executed.\n");
